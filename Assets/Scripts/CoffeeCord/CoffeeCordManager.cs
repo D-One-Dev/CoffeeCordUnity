@@ -127,6 +127,8 @@ public class CoffeeCordManager: IDisposable
         _ = _ws.DisconnectAsync();
     }
 
+    private readonly Dictionary<string, UserProfile> _userCache = new();
+
     // ---- REST shortcuts ----
 
     public async Task<UserProfile> SearchUserByEmail(string email)
@@ -137,8 +139,19 @@ public class CoffeeCordManager: IDisposable
 
     public async Task<UserProfile> GetUserById(string userId)
     {
+        if (_userCache.TryGetValue(userId, out var cached))
+            return cached;
         var response = await _api.GetUserById(_token, userId);
+        if (response?.user != null)
+            _userCache[userId] = response.user;
         return response?.user;
+    }
+
+    public string GetUserDisplayName(string userId)
+    {
+        return _userCache.TryGetValue(userId, out var profile)
+            ? $"{profile.name} {profile.lastname}"
+            : null;
     }
 
     public async Task<string> CreateServer(string name)

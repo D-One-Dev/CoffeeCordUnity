@@ -11,9 +11,16 @@ public class InputHandler: IDisposable
 
     [Inject(Id = "LoginField")]
     private readonly TMP_InputField _loginField;
-
     [Inject(Id = "PasswordField")]
     private readonly TMP_InputField _passwordField;
+    [Inject(Id = "LoginScreenCanvas")]
+    private readonly CanvasGroup _loginScreenCanvas;
+    [Inject(Id = "ServerListCanvas")]
+    private readonly CanvasGroup _serverListCanvas;
+    [Inject(Id = "ChannelsListCanvas")]
+    private readonly CanvasGroup _channelsListCanvas;
+    [Inject(Id = "ChatCanvas")]
+    private readonly CanvasGroup _chatCanvas;
 
     [Inject]
     public void Construct(EventHandler eventHandler, CoffeeCordManager coffeeCordManager)
@@ -22,8 +29,7 @@ public class InputHandler: IDisposable
 
         _eventHandler = eventHandler;
         _eventHandler.OnTryLogin += TryLogin;
-
-        _coffeeCordManager.OnServersList += OnServersList;
+        _eventHandler.OnSelectServer += SelectServer;
     }
 
     private async void TryLogin()
@@ -32,21 +38,21 @@ public class InputHandler: IDisposable
         await _coffeeCordManager.LoginAndConnect(_loginField.text, _passwordField.text);
         Debug.Log("Fetching server list...");
         await _coffeeCordManager.WsGetServers();
+
+        _eventHandler.HideCanvas(_loginScreenCanvas);
+        _eventHandler.ShowCanvas(_serverListCanvas);
+        _eventHandler.ShowCanvas(_channelsListCanvas);
+        _eventHandler.ShowCanvas(_chatCanvas);
     }
 
-    private void OnServersList(WsServersList serversList)
+    private async void SelectServer(string serverID)
     {
-        Debug.Log("Server list fetched");
-
-        foreach (ServerInfo server in serversList.servers)
-        {
-            Debug.Log($"Server: {server.serverName} - {server.serverId}");
-        }
+        Debug.Log($"Fetching channel list for server {serverID}");
+        await _coffeeCordManager.WsGetChannels(serverID);
     }
 
     public void Dispose()
     {
         _eventHandler.OnTryLogin -= TryLogin;
-        _coffeeCordManager.OnServersList -= OnServersList;
     }
 }
